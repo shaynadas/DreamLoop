@@ -1,0 +1,17 @@
+# Waymo SDK + TensorFlow. Linux x86_64 ONLY.
+#
+# Required only if you run waymo_loader.py to decode .tfrecord files on THIS
+# box. On Grace Blackwell / Jetson / any aarch64 host, this install WILL fail
+# with "No matching distribution found" — do the decode on x86_64 elsewhere
+# and copy the resulting waymo_intermediate/<segment>/ directory over.
+#
+# Python 3.10 required (Waymo SDK has no wheels for 3.11+).
+#
+# Install:
+#   python3.10 -m venv .venv-waymo        # separate venv so it doesn't
+#   source .venv-waymo/bin/activate       # contaminate the GX10 torch env
+#   pip install -r requirements.txt        # core deps first
+#   pip install -r requirements-waymo.txt  # then TF + Waymo
+
+tensorflow==2.12.0
+waymo-open-dataset-tf-2-12-0

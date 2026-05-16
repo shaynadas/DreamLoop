@@ -1,54 +1,41 @@
-# DreamLoop pipeline — Linux x86_64 (GX10).
+# DreamLoop core pipeline — Linux x86_64 AND aarch64 (GX10 / Grace Blackwell).
+# Python 3.10 recommended; 3.11 also works for this core set.
 #
-# ───────────────────────────────────────────────────────────────────────
-#  REQUIRED Python: 3.10
+# This file does NOT include TensorFlow or the Waymo SDK. The Waymo SDK has
+# no aarch64 wheel and TF 2.12 is locked to x86_64 + Python ≤3.11. If you
+# need to decode .tfrecord on THIS box (you probably don't — see below),
+# install requirements-waymo.txt separately and accept that it will fail
+# on aarch64.
 #
-#  The Waymo SDK (waymo-open-dataset-tf-2-12-0) only ships wheels for
-#  CPython 3.8 – 3.10. TF 2.12 caps out at Python 3.11. Don't fight it:
-#
-#      sudo apt install python3.10 python3.10-venv          # Ubuntu 22.04
-#      python3.10 -m venv .venv
-#      source .venv/bin/activate
-#      pip install --upgrade pip
-#      pip install -r requirements.txt
-#
-#  If you're on Python 3.11+ and don't need to decode Waymo .tfrecords on
-#  this box, comment out the two "WAYMO" lines and skip waymo_loader.py.
-# ───────────────────────────────────────────────────────────────────────
+# Recommended Waymo workflow on the GX10:
+#   1. Decode .tfrecord on a Linux x86_64 box (laptop, cloud VM, Docker).
+#   2. scp the resulting waymo_intermediate/<segment>/ directory to the GX10.
+#   3. Run the rest of the pipeline (perturb → rds_writer → cosmos → eval) here.
+#   The intermediate dir is small (parquets + PNGs), maybe 100–300 MB.
 
-# Core scientific stack. numpy pinned <1.24 for TF 2.12 compatibility;
-# the upper bound matters more than the lower.
-numpy>=1.23,<1.24
-pandas>=2.0,<2.2
+# Core scientific stack.
+numpy>=1.23
+pandas>=2.0
 pyarrow>=14.0
 pillow>=10.0
 scipy>=1.11
 tqdm>=4.66
 
-# OpenCV — headless wheel: no GUI deps, smaller install, same VideoWriter/
-# VideoCapture/imwrite API we use. If you ALSO need cv2.imshow() (you don't
-# on a server), swap to opencv-python.
+# OpenCV — headless: no X11 deps, smaller install, same API we use.
 opencv-python-headless>=4.8
 
-# ── WAYMO (waymo_loader.py) ──
-# These two MUST stay together. The SDK wheel is built against TF 2.12.0
-# exactly. Picking a different TF version breaks the proto bindings.
-tensorflow==2.12.0
-waymo-open-dataset-tf-2-12-0
-
 # ── PERCEPTION (yolo_eval.py) ──
-# torch wheel selection: by default pip pulls CPU wheels on Linux. If you
-# want CUDA (you do, on the GX10), install torch separately FIRST:
+# torch should be CUDA-enabled. The Cosmos venv on this box already has a
+# CUDA torch — if you're sharing that venv, skip torch here. Otherwise:
 #
-#   pip install torch==2.4.* torchvision --index-url \
+#   pip install torch torchvision --index-url \
 #       https://download.pytorch.org/whl/cu124
 #
-# …then `pip install -r requirements.txt` for the rest. The version
-# constraints below are loose so the CUDA install above isn't overwritten.
+# …THEN pip install -r requirements.txt for the rest.
 torch>=2.1
 torchvision>=0.16
 ultralytics>=8.1
 
-# ── DASHBOARD (Streamlit pivot) ──
+# ── DASHBOARD ──
 streamlit>=1.30
 plotly>=5.18
