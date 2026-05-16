@@ -1,0 +1,22 @@
+{
+  "clips": [
+    {
+      "id": "positive_01",
+      "label": "Positive collision #1 (pedestrian)",
+      "raw": "nexar_videos/train/positive/REPLACE_ME.mp4",
+      "kind": "positive"
+    },
+    {
+      "id": "positive_02",
+      "label": "Positive collision #2 (pedestrian)",
+      "raw": "nexar_videos/train/positive/REPLACE_ME.mp4",
+      "kind": "positive"
+    },
+    {
+      "id": "negative_rainy",
+      "label": "Negative (rainy)",
+      "raw": "nexar_videos/train/negative/01040.mp4",
+      "kind": "negative"
+    }
+  ]
+}

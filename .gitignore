@@ -25,6 +25,8 @@ outputs/
 
 # Large data & model weights (re-download via scripts)
 nexar_videos/
+nexar_previews/
+nexar_temp/
 *.pt
 *.pth
 *.onnx
