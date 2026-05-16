@@ -1,0 +1,21 @@
+{
+  "clip_id": "positive_01",
+  "images_dir": "synthetic/positive_01/frames",
+  "placeholder": true,
+  "annotations": [
+    {
+      "image": "frame_00030.jpg",
+      "frame_index": 30,
+      "boxes": [
+        {
+          "x1": 412,
+          "y1": 198,
+          "x2": 468,
+          "y2": 312,
+          "label": "person"
+        }
+      ]
+    }
+  ],
+  "_comment": "Placeholder labels for UI demo (--placeholder). Replace with real Cosmos synthetic GT."
+}

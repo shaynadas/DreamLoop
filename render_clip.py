@@ -4,6 +4,7 @@ render_clip.py — Offline pipeline for one dashboard clip.
   Panel 1: raw Nexar (already on disk)
   Panel 2: dreamloop_sim --model yolo (cars + HUD + snow, no pedestrians)
   Panel 3: yolo_eval on dreamloop_web.mp4 (person boxes + miss screenshot)
+  Panel 4: yolo_finetune.py --placeholder (hit video + screenshot; no real train)
 
 USAGE:
     python render_clip.py --clip-id positive_01 \\
@@ -69,6 +70,7 @@ def render_clip(
     yolo_conf: float,
     skip_sim: bool,
     skip_baseline: bool,
+    placeholder_finetune: bool,
     display_sim: bool,
 ) -> None:
     paths = paths_for_clip(ROOT, {"id": clip_id, "raw": str(raw_video.relative_to(ROOT)).replace("\\", "/")})
@@ -119,10 +121,24 @@ def render_clip(
     else:
         print("[INFO] Skipping yolo_eval (--skip-baseline)")
 
+    if placeholder_finetune:
+        run(
+            [
+                sys.executable,
+                str(ROOT / "yolo_finetune.py"),
+                "--clip-id", clip_id,
+                "--placeholder",
+            ],
+            "Panel 4: placeholder fine-tune (UI demo)",
+        )
+
     print("\n── Done ─────────────────────────────────────")
     print(f"  Panel 2 video : {paths['processed']}")
     print(f"  Panel 3 video : {paths['baseline_video']}")
     print(f"  Screenshot    : {paths['baseline_screenshot']}")
+    if placeholder_finetune:
+        print(f"  Panel 4 video : {paths['finetuned_video']}")
+        print(f"  Hit screenshot  : {paths['finetuned_screenshot']}")
     print("  Streamlit     : streamlit run app.py")
 
 
@@ -137,6 +153,10 @@ def main() -> int:
     parser.add_argument("--yolo-conf", type=float, default=0.25, help="Person conf for yolo_eval")
     parser.add_argument("--skip-sim", action="store_true", help="Only run yolo_eval (dreamloop_web exists)")
     parser.add_argument("--skip-baseline", action="store_true", help="Only run dreamloop_sim + ffmpeg")
+    parser.add_argument(
+        "--placeholder-finetune", action="store_true",
+        help="Run yolo_finetune.py --placeholder for panel 4 (no real training)",
+    )
     parser.add_argument("--display-sim", action="store_true", help="Show live dreamloop window")
     args = parser.parse_args()
 
@@ -148,6 +168,7 @@ def main() -> int:
         yolo_conf=args.yolo_conf,
         skip_sim=args.skip_sim,
         skip_baseline=args.skip_baseline,
+        placeholder_finetune=args.placeholder_finetune,
         display_sim=args.display_sim,
     )
     return 0

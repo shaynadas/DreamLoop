@@ -72,7 +72,9 @@ st.sidebar.code(
     f"--output outputs/{clip_id}/dreamloop_output.mp4 --no-display\n"
     f"ffmpeg -y -i outputs/{clip_id}/dreamloop_output.mp4 -c:v libx264 "
     f"-pix_fmt yuv420p -movflags +faststart outputs/{clip_id}/dreamloop_web.mp4\n"
-    f"python yolo_eval.py --clip-id {clip_id} --screenshot --web",
+    f"python yolo_eval.py --clip-id {clip_id} --screenshot --web\n\n"
+    f"# Panel 4 placeholder (no real train — UI demo)\n"
+    f"python yolo_finetune.py --clip-id {clip_id} --placeholder",
     language="bash",
 )
 
@@ -151,6 +153,11 @@ with row2_col1:
 with row2_col2:
     st.markdown("### Fine-Tuned YOLO (Tracking Correctly)")
     st.caption(f"`{paths['finetuned_video'].relative_to(ROOT)}`")
+    if paths["finetuned_screenshot"].is_file():
+        st.image(
+            str(paths["finetuned_screenshot"]),
+            caption="Hit screenshot (placeholder or real fine-tune)",
+        )
     play_prerendered(
         f"play_finetuned_{clip_id}",
         paths["finetuned_video"],

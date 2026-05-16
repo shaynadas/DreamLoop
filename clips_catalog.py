@@ -77,6 +77,7 @@ def paths_for_clip(root: Path, clip: dict[str, Any]) -> dict[str, Path]:
         "baseline_video_raw": out / "baseline_yolo.mp4",
         "baseline_screenshot": out / "baseline_miss_pedestrian.png",
         "finetuned_video": out / "finetuned_yolo_web.mp4",
+        "finetuned_screenshot": out / "finetuned_hit_pedestrian.png",
         "metrics": out / "metrics.json",
     }
 
