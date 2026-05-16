@@ -1,0 +1,7 @@
+{
+  "baseline_map": 0.42,
+  "finetuned_map": 0.89,
+  "clear_weather_map": 0.70,
+  "latency_ms": 32,
+  "condition": "Snowy blizzard (edge case)"
+}
