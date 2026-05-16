@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import streamlit as st
@@ -6,7 +5,11 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parent
 NEXAR_DIR = ROOT / "nexar_videos" / "train" / "negative"
 OUTPUTS_DIR = ROOT / "outputs"
-DEFAULT_OUTPUT = OUTPUTS_DIR / "dreamloop_web.mp4"
+
+# Pre-rendered H.264 clips only — buttons never run live inference.
+PROCESSED_VIDEO = OUTPUTS_DIR / "dreamloop_web.mp4"
+BASELINE_YOLO_VIDEO = OUTPUTS_DIR / "baseline_yolo_web.mp4"
+FINETUNED_YOLO_VIDEO = OUTPUTS_DIR / "finetuned_yolo_web.mp4"
 
 st.set_page_config(page_title="DreamLoop AV Dashboard", layout="wide")
 
@@ -19,38 +22,55 @@ st.sidebar.selectbox(
     "Select Driving Scenario",
     ["Snowy Blizzard", "Night Drive", "Heavy Rain", "Foggy Highway"],
 )
-st.sidebar.slider("Weather Severity Slider", 0.0, 1.0, 0.5)
+st.sidebar.markdown("**Weather controls**")
+rain = st.sidebar.slider("Rain", 0.0, 1.0, 0.0)
+night = st.sidebar.slider("Night", 0.0, 1.0, 0.0)
+fog = st.sidebar.slider("Fog", 0.0, 1.0, 0.0)
+st.sidebar.caption(f"Rain {rain:.2f} · Night {night:.2f} · Fog {fog:.2f}")
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("**Generate processed video**")
+st.sidebar.markdown("**Offline render (not run from this UI)**")
 st.sidebar.code(
     "python dreamloop_sim.py "
     "--video nexar_videos/train/negative/01040.mp4 "
-    "--output outputs/dreamloop_output.mp4 "
-    "--no-display",
+    "--output outputs/dreamloop_output.mp4 --no-display\n"
+    "ffmpeg -y -i outputs/dreamloop_output.mp4 -c:v libx264 "
+    "-pix_fmt yuv420p -movflags +faststart outputs/dreamloop_web.mp4",
     language="bash",
 )
+
 
 def list_mp4s(folder: Path) -> list[str]:
     if not folder.is_dir():
         return []
     return sorted(f.name for f in folder.glob("*.mp4"))
 
-def latest_output() -> Path | None:
-    if not OUTPUTS_DIR.is_dir():
-        return None
-    mp4s = sorted(OUTPUTS_DIR.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
-    return mp4s[0] if mp4s else None
+
+def play_prerendered(session_key: str, path: Path, button_label: str) -> None:
+    """Load a pre-rendered file from outputs/ when the user clicks play."""
+    if st.button(button_label, type="primary", use_container_width=True, key=f"btn_{session_key}"):
+        st.session_state[session_key] = True
+
+    if st.session_state.get(session_key):
+        if path.is_file():
+            st.video(str(path))
+            st.success(f"Playing `{path.name}`")
+        else:
+            st.warning(
+                f"No pre-rendered video at `{path}`.\n\n"
+                f"Add `{path.name}` (H.264, e.g. ffmpeg `*_web.mp4`), then click again."
+            )
+
 
 video_files = list_mp4s(NEXAR_DIR)
 raw_video = NEXAR_DIR / video_files[0] if video_files else None
-output_video = DEFAULT_OUTPUT if DEFAULT_OUTPUT.is_file() else latest_output()
 
 row1_col1, row1_col2 = st.columns(2)
 row2_col1, row2_col2 = st.columns(2)
 
 with row1_col1:
     st.markdown("### Raw Camera Feed")
+    st.caption(f"Pre-rendered source: `{NEXAR_DIR.relative_to(ROOT)}`")
     if raw_video:
         st.video(str(raw_video))
     else:
@@ -58,27 +78,30 @@ with row1_col1:
 
 with row1_col2:
     st.markdown("### Processed Simulation (HUD + Snow)")
-    st.caption("Run `dreamloop_sim.py` with `--output` first, then play for judges.")
-    if st.button("Play processed demo for judge", type="primary", use_container_width=True):
-        st.session_state["play_output"] = True
-
-    if st.session_state.get("play_output"):
-        if output_video and output_video.is_file():
-            st.video(str(output_video))
-            st.success(f"Playing `{output_video.name}`")
-        else:
-            st.warning(
-                f"No output video yet. Expected `{DEFAULT_OUTPUT}` or any `.mp4` in `outputs/`.\n\n"
-                "Run the command in the sidebar, then click the button again."
-            )
+    st.caption(f"Pre-rendered: `{PROCESSED_VIDEO.relative_to(ROOT)}`")
+    play_prerendered(
+        "play_processed",
+        PROCESSED_VIDEO,
+        "Play processed demo for judge",
+    )
 
 with row2_col1:
     st.markdown("### Baseline YOLO (Misses Pedestrian)")
-    st.info("Placeholder: connect baseline YOLO clip in `outputs/`.")
+    st.caption(f"Pre-rendered: `{BASELINE_YOLO_VIDEO.relative_to(ROOT)}`")
+    play_prerendered(
+        "play_baseline",
+        BASELINE_YOLO_VIDEO,
+        "Play baseline YOLO",
+    )
 
 with row2_col2:
     st.markdown("### Fine-Tuned YOLO (Tracking Correctly)")
-    st.info("Placeholder: connect fine-tuned YOLO clip in `outputs/`.")
+    st.caption(f"Pre-rendered: `{FINETUNED_YOLO_VIDEO.relative_to(ROOT)}`")
+    play_prerendered(
+        "play_finetuned",
+        FINETUNED_YOLO_VIDEO,
+        "Play fine-tuned YOLO",
+    )
 
 st.markdown("---")
 st.markdown("## Validation Metrics Panel")
