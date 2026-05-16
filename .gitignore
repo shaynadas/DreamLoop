@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.Python
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Data / models / outputs (never commit)
+data/
+models/
+outputs/
+checkpoints/
+*.tfrecord
+*.pcd
+*.parquet
+*.mp4
+*.png
+!docs/**/*.png
+
+# Local config
+.env
+config.local.py
