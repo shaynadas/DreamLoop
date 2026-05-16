@@ -1,0 +1,13 @@
+# data.yaml
+path: ./dreamloop_dataset # This matches the output folder from our previous script
+train: images/train
+val: images/train # For a 24hr hackathon, we just validate on the train set to save time
+
+# Classes (We are using standard COCO classes, Class 2 is 'car')
+names:
+  0: person
+  1: bicycle
+  2: car
+  3: motorcycle
+  5: bus
+  7: truck
