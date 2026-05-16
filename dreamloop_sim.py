@@ -12,18 +12,20 @@ HUD overlay showing:
   - "COSMOS SCENE" synthetic-data badge
 
 USAGE:
-    # Point at a Cosmos-Drive-Dreams downloaded clip:
-    python dreamloop_sim_v2.py --video cosmos_snowy_scene.mp4
+    # Process a clip and save for the Streamlit dashboard:
+    python dreamloop_sim.py --video nexar_videos/train/negative/01040.mp4 --output outputs/demo.mp4 --no-display
 
-    # Use webcam instead:
-    python dreamloop_sim_v2.py --video 0
+    # Live preview (loops video):
+    python dreamloop_sim.py --video nexar_videos/train/negative/01040.mp4
 
     # Use real YOLOv8 (pip install ultralytics):
-    python dreamloop_sim_v2.py --video cosmos_snowy_scene.mp4 --model yolo
+    python dreamloop_sim.py --video clip.mp4 --model yolo --output outputs/demo.mp4 --no-display
 
     Optional flags:
-      --model  mock | yolo      Detector backend   (default: mock)
-      --conf   0.0–1.0          YOLO conf threshold (default: 0.4)
+      --model       mock | yolo     Detector backend   (default: mock)
+      --conf        0.0–1.0         YOLO conf threshold (default: 0.4)
+      --output      path.mp4        Write processed video (creates parent dirs)
+      --no-display                  Skip live window (use with --output)
 
 DEPS (mock mode):   pip install opencv-python
 DEPS (yolo mode):   pip install opencv-python ultralytics
@@ -34,6 +36,7 @@ import argparse
 import time
 import math
 import random
+from pathlib import Path
 from collections import deque
 
 
@@ -246,20 +249,33 @@ def draw_hud(frame, speed, detections, smooth_conf,
 # ─────────────────────────────────────────────────────────────
 # Main simulation loop
 # ─────────────────────────────────────────────────────────────
-def run_sim(video_path, detector_mode, conf_threshold):
+def run_sim(video_path, detector_mode, conf_threshold, output_path=None, display=True):
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         print(f"[ERROR] Cannot open video: {video_path}")
-        return
+        return False
 
     w          = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     h          = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     native_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     total      = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
+    writer = None
+    if output_path:
+        out = Path(output_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        writer = cv2.VideoWriter(str(out), fourcc, native_fps, (w, h))
+        if not writer.isOpened():
+            print(f"[ERROR] Cannot open output writer: {out}")
+            cap.release()
+            return False
+        print(f"[INFO] Writing : {out.resolve()}")
+
     print(f"[INFO] Video  : {w}×{h} @ {native_fps:.1f} fps  ({total} frames)")
     print(f"[INFO] Detector: {detector_mode.upper()}")
-    print("[INFO] Keys   : SPACE = pause/resume   Q / ESC = quit")
+    if display:
+        print("[INFO] Keys   : SPACE = pause/resume   Q / ESC = quit")
 
     detector   = YOLODetector(conf_threshold) if detector_mode == "yolo" \
                  else MockDetector(w, h)
@@ -274,11 +290,14 @@ def run_sim(video_path, detector_mode, conf_threshold):
     fps_disp   = native_fps
     prev_brake = False          # last frame's brake state
     flash_ctr  = 0              # countdown for transition flash
+    frame = None
 
     while True:
         if not paused:
             ret, frame = cap.read()
             if not ret:
+                if writer:
+                    break
                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                 frame_idx = 0
                 continue
@@ -315,20 +334,31 @@ def run_sim(video_path, detector_mode, conf_threshold):
                      fps_disp, frame_idx, w, h,
                      flash_ctr, is_braking)
 
+            if writer:
+                writer.write(frame)
+
             frame_idx += 1
 
-        cv2.imshow("DreamLoop AV Simulator  ·  Cosmos Edition", frame)
-
-        key = cv2.waitKey(max(1, int(1000 / native_fps))) & 0xFF
-        if key in (ord('q'), 27):
-            break
-        elif key == ord(' '):
-            paused = not paused
-            print("[INFO]", "Paused" if paused else "Resumed")
+        if display and frame is not None:
+            cv2.imshow("DreamLoop AV Simulator  ·  Cosmos Edition", frame)
+            key = cv2.waitKey(max(1, int(1000 / native_fps))) & 0xFF
+            if key in (ord('q'), 27):
+                break
+            elif key == ord(' '):
+                paused = not paused
+                print("[INFO]", "Paused" if paused else "Resumed")
+        elif writer and not display:
+            if frame_idx % 30 == 0 and total > 0:
+                print(f"[INFO] Processed {frame_idx}/{total} frames…")
 
     cap.release()
-    cv2.destroyAllWindows()
+    if writer:
+        writer.release()
+        print(f"[INFO] Saved output ({frame_idx} frames).")
+    if display:
+        cv2.destroyAllWindows()
     print("[INFO] Simulation ended.")
+    return True
 
 
 # ─────────────────────────────────────────────────────────────
@@ -342,7 +372,25 @@ if __name__ == "__main__":
                         help="Detector backend: 'mock' or 'yolo' (default: mock)")
     parser.add_argument("--conf",  type=float, default=0.4,
                         help="YOLO confidence threshold 0–1 (default: 0.4)")
+    parser.add_argument(
+        "--output", default=None,
+        help="Save processed video to this .mp4 path (e.g. outputs/demo.mp4)",
+    )
+    parser.add_argument(
+        "--no-display", action="store_true",
+        help="Do not open a live preview window (recommended with --output)",
+    )
     args = parser.parse_args()
 
     source = int(args.video) if args.video.isdigit() else args.video
-    run_sim(source, args.model, args.conf)
+    display = not args.no_display
+    if args.output and not display:
+        pass
+    elif args.output and display:
+        print("[INFO] Writing to disk while showing live preview.")
+    elif not display:
+        parser.error("--no-display requires --output")
+
+    ok = run_sim(source, args.model, args.conf, args.output, display)
+    if not ok:
+        raise SystemExit(1)

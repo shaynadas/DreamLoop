@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Virtual environments
+dreamloop_env/
+.venv/
+venv/
+env/
+
+# Hugging Face / download caches
+.hf_cache/
+.cache/
+
+# Generated outputs (run dreamloop_sim.py to recreate)
+outputs/
+
+# Large data & model weights (re-download via scripts)
+nexar_videos/
+*.pt
+*.pth
+*.onnx
+*.weights
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
