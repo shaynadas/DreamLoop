@@ -222,7 +222,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Inject hazard scenarios into RDS-HQ label files.")
     parser.add_argument("--data_dir",   required=True,
                         help="Path to folder of all_object_info JSON files")
-    parser.add_argument("--output_dira", required=True,
+    parser.add_argument("--output_dir", required=True,
                         help="Where to save modified JSONs, boxes.json, .mp4, and .pt")
     parser.add_argument("--scenario",   default="pedestrian_cross",
                         choices=["pedestrian_cross", "collision", "jaywalker", "bike"],
